@@ -104,7 +104,7 @@ if st.session_state['logged_in']:
                 
                 # 작성자 전용 권한
                 if st.session_state['username'] == row['author']:
-                    c1, c2 = st.columns(5)
+                    c1, c2, c3, c4, c5 = st.columns(5)
                     with c1:
                         if st.button("수정", key=f"e_{row['id']}"):
                             st.session_state.update({'edit_mode': True, 'edit_post_id': row['id']})
@@ -131,4 +131,5 @@ if st.session_state['logged_in']:
                         st.rerun()
 else:
     st.warning("로그인이 필요한 서비스입니다.")
+
 

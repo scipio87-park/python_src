@@ -10,22 +10,19 @@ conn = st.connection("postgresql", type="sql")
 # --- 2. DB 테이블 초기화 (최초 실행 시) ---
 def init_db():
     with conn.session as s:
-        # 사용자 테이블
-        s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
-        
-        # 게시글 테이블 (BLOB 대신 BYTEA 사용)
-        s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
-                         (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
-                          content TEXT, file_name TEXT, file_data BYTEA, 
-                          date TEXT, likes INTEGER DEFAULT 0)'''))
-                          
-        # 댓글 테이블
-        s.execute(text('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, post_id INTEGER, author TEXT, comment TEXT, date TEXT)'))
-        
-        # 좋아요 로그
-        s.execute(text('CREATE TABLE IF NOT EXISTS likes_log (post_id INTEGER, username TEXT, PRIMARY KEY(post_id, username))'))
-        
-        s.commit()
+        try:
+            # Wrap everything in a transaction block
+            with s.begin():
+                s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
+                s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
+                                 (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
+                                  content TEXT, file_name TEXT, file_data BYTEA, 
+                                  date TEXT, likes INTEGER DEFAULT 0)'''))
+                s.execute(text('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, post_id INTEGER, author TEXT, comment TEXT, date TEXT)'))
+                s.execute(text('CREATE TABLE IF NOT EXISTS likes_log (post_id INTEGER, username TEXT, PRIMARY KEY(post_id, username))'))
+            # s.commit() is handled automatically by with s.begin()
+        except Exception as e:
+            st.error(f"Database initialization failed: {e}")
 
 init_db()
 
@@ -153,6 +150,7 @@ else:
     
     
       
+
 
 
 

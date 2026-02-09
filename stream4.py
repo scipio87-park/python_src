@@ -8,13 +8,11 @@ from datetime import datetime
 def init_db():
     conn = sqlite3.connect('board.db', check_same_thread=False)
     c = conn.cursor()
-    #c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
     c.execute('''CREATE TABLE IF NOT EXISTS posts 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, author TEXT, title TEXT, 
                   content TEXT, file_name TEXT, file_data BLOB, date TEXT)''')
-
-    c.execute('DROP TABLE IF EXISTS  comments')                 
-                  
+          
     c.execute('CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER, author TEXT, comment TEXT, date TEXT)')
     conn.commit()
     return conn
@@ -137,6 +135,7 @@ else:
     
     
       
+
 
 
 

@@ -1,140 +1,159 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
 import hashlib
 from datetime import datetime
+from sqlalchemy import text
 
-# --- DB 설정 ---
+# --- 1. DB 연결 (Neon/Postgres) ---
+conn = st.connection("postgresql", type="sql")
+
+# --- 2. DB 테이블 초기화 (최초 실행 시) ---
 def init_db():
-    conn = sqlite3.connect('board.db', check_same_thread=False)
-    c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)')
-    c.execute('''CREATE TABLE IF NOT EXISTS posts 
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, author TEXT, title TEXT, 
-                  content TEXT, file_name TEXT, file_data BLOB, date TEXT)''')
-          
-    c.execute('CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER, author TEXT, comment TEXT, date TEXT)')
-    conn.commit()
-    return conn
+    with conn.session as s:
+        # 사용자 테이블
+        s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
+        
+        # 게시글 테이블 (BLOB 대신 BYTEA 사용)
+        s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
+                         (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
+                          content TEXT, file_name TEXT, file_data BYTEA, 
+                          date TEXT, likes INTEGER DEFAULT 0)'''))
+                          
+        # 댓글 테이블
+        s.execute(text('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, post_id INTEGER, author TEXT, comment TEXT, date TEXT)'))
+        
+        # 좋아요 로그
+        s.execute(text('CREATE TABLE IF NOT EXISTS likes_log (post_id INTEGER, username TEXT, PRIMARY KEY(post_id, username))'))
+        
+        s.commit()
 
-conn = init_db()
-c = conn.cursor()
+init_db()
 
 def hash_pass(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
-# --- 세션 상태 초기화 ---
+# --- 3. 세션 상태 초기화 ---
 if 'logged_in' not in st.session_state:
     st.session_state.update({'logged_in': False, 'username': "", 'edit_mode': False, 'edit_post_id': None})
 
-# --- 사이드바 로그인 ---
+# --- 4. 사이드바 (로그인 & 검색) ---
 with st.sidebar:
     if not st.session_state['logged_in']:
-        auth_mode = st.radio("접속", ["로그인", "회원가입"])
-        user = st.text_input("ID")
-        pw = st.text_input("PW", type="password")
+        st.subheader("🔑 클라우드 접속")
+        auth_mode = st.radio("모드 선택", ["로그인", "회원가입"])
+        user = st.text_input("아이디")
+        pw = st.text_input("비밀번호", type="password")
+        
         if st.button("확인"):
             if auth_mode == "로그인":
-                c.execute('SELECT * FROM users WHERE username=? AND password=?', (user, hash_pass(pw)))
-                if c.fetchone():
+                res = conn.query(f"SELECT * FROM users WHERE username='{user}' AND password='{hash_pass(pw)}'", ttl=0)
+                if not res.empty:
                     st.session_state.update({'logged_in': True, 'username': user})
                     st.rerun()
-                else: st.error("실패!")
+                else: 
+                    st.error("로그인 실패!")
             else:
                 try:
-                    c.execute('INSERT INTO users VALUES (?,?)', (user, hash_pass(pw)))
-                    conn.commit()
-                    st.success("가입 완료!")
-                except: st.error("중복 ID")
+                    with conn.session as s:
+                        s.execute(text("INSERT INTO users VALUES (:u, :p)"), {"u": user, "p": hash_pass(pw)})
+                        s.commit()
+                    st.success("회원가입 완료!")
+                except: 
+                    st.error("이미 존재하는 아이디입니다.")
     else:
         st.write(f"👤 **{st.session_state['username']}**님")
         if st.button("로그아웃"):
             st.session_state.update({'logged_in': False, 'username': ""})
             st.rerun()
+        
+        st.divider()
+        search_query = st.text_input("🔍 글 검색")
 
-# --- 메인 로직 ---
-st.title("🚀 스마트 게시판")
+# --- 5. 메인 화면 ---
+st.title("☁️ Cloud Smart Board")
 
 if st.session_state['logged_in']:
     menu = ["목록", "글쓰기"]
     choice = st.sidebar.selectbox("메뉴", menu)
 
-    # --- 수정 모드 UI ---
+    # A. 수정 모드
     if st.session_state['edit_mode']:
-        st.subheader("📝 게시글 수정하기")
-        post_id = st.session_state['edit_post_id']
-        c.execute('SELECT title, content FROM posts WHERE id=?', (post_id,))
-        p_data = c.fetchone()
+        pid = st.session_state['edit_post_id']
+        p_data = conn.query(f"SELECT title, content FROM posts WHERE id={pid}", ttl=0).iloc[0]
         
-        new_title = st.text_input("제목 변경", value=p_data[0])
-        new_content = st.text_area("내용 변경", value=p_data[1], height=200)
+        new_title = st.text_input("제목 변경", value=p_data['title'])
+        new_content = st.text_area("내용 변경", value=p_data['content'], height=200)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("저장"):
-                c.execute('UPDATE posts SET title=?, content=? WHERE id=?', (new_title, new_content, post_id))
-                conn.commit()
-                st.session_state.update({'edit_mode': False, 'edit_post_id': None})
-                st.success("수정되었습니다!")
-                st.rerun()
-        with col2:
-            if st.button("취소"):
-                st.session_state.update({'edit_mode': False, 'edit_post_id': None})
-                st.rerun()
+        if st.button("수정 완료"):
+            with conn.session as s:
+                s.execute(text("UPDATE posts SET title=:t, content=:c WHERE id=:id"), 
+                          {"t": new_title, "c": new_content, "id": pid})
+                s.commit()
+            st.session_state.update({'edit_mode': False, 'edit_post_id': None})
+            st.rerun()
 
-    # --- 일반 메뉴 UI ---
+    # B. 글쓰기 모드
     elif choice == "글쓰기":
         t = st.text_input("제목")
         cont = st.text_area("내용")
-        f = st.file_uploader("파일")
+        f = st.file_uploader("이미지 첨부", type=['png', 'jpg', 'jpeg'])
+        
+        if f: st.image(f, width=300)
+
         if st.button("등록"):
-            fname = f.name if f else None
-            fdata = f.read() if f else None
-            c.execute('INSERT INTO posts(author, title, content, file_name, file_data, date) VALUES (?,?,?,?,?,?)',
-                      (st.session_state['username'], t, cont, fname, fdata, datetime.now().strftime("%Y-%m-%d %H:%M")))
-            conn.commit()
+            fdata = f.getvalue() if f else None
+            with conn.session as s:
+                s.execute(text("INSERT INTO posts(author, title, content, file_name, file_data, date) VALUES (:a, :t, :c, :fn, :fd, :d)"),
+                          {"a": st.session_state['username'], "t": t, "c": cont, "fn": f.name if f else None, "fd": fdata, "d": datetime.now().strftime("%Y-%m-%d")})
+                s.commit()
+            st.success("등록 완료!")
             st.rerun()
 
+    # C. 목록 모드
     elif choice == "목록":
-        posts = pd.read_sql_query("SELECT * FROM posts ORDER BY id DESC", conn)
+        posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)
+        
+        if search_query:
+            posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
+
         for _, row in posts.iterrows():
-            with st.expander(f"📌 {row['title']} (by {row['author']})"):
+            with st.expander(f"📌 {row['title']} - {row['author']}"):
+                if row['file_data']:
+                    st.image(row['file_data'])
                 st.write(row['content'])
-                if row['file_name']:
-                    st.download_button("📁 다운로드", row['file_data'], row['file_name'], key=f"dl_{row['id']}")
                 
-                # 작성자 전용 권한
+                # 좋아요 기능
+                like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
+                is_liked = not like_res.empty
+                
+                if st.button(f"{'❤️' if is_liked else '🤍'} {row['likes']}", key=f"lk_{row['id']}"):
+                    with conn.session as s:
+                        if is_liked:
+                            s.execute(text(f"DELETE FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'"))
+                            s.execute(text(f"UPDATE posts SET likes = likes - 1 WHERE id={row['id']}"))
+                        else:
+                            s.execute(text(f"INSERT INTO likes_log VALUES ({row['id']}, '{st.session_state['username']}')"))
+                            s.execute(text(f"UPDATE posts SET likes = likes + 1 WHERE id={row['id']}"))
+                        s.commit()
+                    st.rerun()
+
+                # 본인 글 수정/삭제
                 if st.session_state['username'] == row['author']:
-                    c1, c2, c3, c4, c5 = st.columns(5)
-                    with c1:
-                        if st.button("수정", key=f"e_{row['id']}"):
-                            st.session_state.update({'edit_mode': True, 'edit_post_id': row['id']})
-                            st.rerun()
-                    with c2:
-                        if st.button("삭제", key=f"d_{row['id']}"):
-                            c.execute('DELETE FROM posts WHERE id=?', (row['id'],))
-                            conn.commit()
-                            st.rerun()
-                
-                # 댓글 섹션
-                st.divider()
-                st.caption("💬 댓글")
-                coms = pd.read_sql_query(f"SELECT * FROM comments WHERE post_id={row['id']}", conn)
-                for _, cm in coms.iterrows():
-                    st.write(f"**{cm['author']}**: {cm['comment']}")
-                
-                with st.form(key=f"f_{row['id']}", clear_on_submit=True):
-                    nc = st.text_input("댓글 작성")
-                    if st.form_submit_button("등록"):
-                        c.execute('INSERT INTO comments(post_id, author, comment, date) VALUES (?,?,?,?)',
-                                  (row['id'], st.session_state['username'], nc, datetime.now().strftime("%H:%M")))
-                        conn.commit()
+                    c1, c2 = st.columns(10)[:2] # 작게 배치
+                    if c1.button("✏️", key=f"ed_{row['id']}"):
+                        st.session_state.update({'edit_mode': True, 'edit_post_id': row['id']})
+                        st.rerun()
+                    if c2.button("🗑️", key=f"del_{row['id']}"):
+                        with conn.session as s:
+                            s.execute(text(f"DELETE FROM posts WHERE id={row['id']}"))
+                            s.commit()
                         st.rerun()
 else:
-    st.warning("로그인이 필요한 서비스입니다.")
+    st.info("사이드바를 이용해 로그인해 주세요.")
     
     
       
+
 
 
 

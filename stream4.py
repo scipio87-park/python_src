@@ -113,7 +113,7 @@ if st.session_state['logged_in']:
     # C. 목록 모드
     elif choice == "목록":
         #posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
-        posts = conn.query("SELECT title, author, content FROM posts ORDER BY id DESC", ttl=0)          
+        posts = conn.query("SELECT id, title, author, content FROM posts ORDER BY id DESC", ttl=0)          
         
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
@@ -125,8 +125,7 @@ if st.session_state['logged_in']:
                 st.write(row['content'])
                 
                 # 좋아요 기능
-                #like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
-                like_res = conn.query(f"SELECT '1' FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)                
+                like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
                 is_liked = not like_res.empty
                 
                 if st.button(f"{'❤️' if is_liked else '🤍'} {row['likes']}", key=f"lk_{row['id']}"):

@@ -16,9 +16,9 @@ def init_db():
         try:
             # Wrap everything in a transaction block
             with s.begin():
-                #s.execute(text('DROP TABLE likes_log'))    
-                #s.execute(text('DROP TABLE comments'))                    
-                #s.execute(text('DROP TABLE posts'))                
+                s.execute(text('DROP TABLE likes_log'))    
+                s.execute(text('DROP TABLE comments'))                    
+                s.execute(text('DROP TABLE posts'))                
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
@@ -129,34 +129,34 @@ if st.session_state['logged_in']:
                 # 바이너리 데이터 가져오기
                 image_data = row['file_data']
                 
-                if image_data:
-                    # BytesIO를 통해 메모리 내에서 이미지 파일을 생성
-                    img = Image.open(io.BytesIO(image_data))
-                    st.image(img, width=300)
-                else:
-                    st.write("이미지가 없습니다.")
-                
-                
-                #blob_data = row['file_data']
-                #
-                #if blob_data:                
-                #    try:                
-                #        # 바이너리(bytes) 데이터를 메모리 내 바이트 스트림으로 변환
-                #        image_bytes = io.BytesIO(blob_data)
-                #        
-                #        # PIL 이미지 객체로 열기
-                #        img = Image.open(image_bytes)
-                #        
-                #        # Streamlit 화면에 표시
-                #        st.image(img, caption=f"게시글 ID: {row['id']}", use_container_width=True)
-                #        
-                #    except Exception as e:
-                #        st.error(f"이미지를 불러오는 중 오류가 발생했습니다: {e}")
+                #if image_data:
+                #    # BytesIO를 통해 메모리 내에서 이미지 파일을 생성
+                #    img = Image.open(io.BytesIO(image_data))
+                #    st.image(img, width=300)
                 #else:
-                #    st.info("등록된 이미지가 없습니다.")
-                #
-                #st.divider() # 구분선
-                ####################################################################
+                #    st.write("이미지가 없습니다.")
+                
+                
+                blob_data = row['file_data']
+                
+                if blob_data:                
+                    try:                
+                        # 바이너리(bytes) 데이터를 메모리 내 바이트 스트림으로 변환
+                        image_bytes = io.BytesIO(blob_data)
+                        
+                        # PIL 이미지 객체로 열기
+                        img = Image.open(image_bytes)
+                        
+                        # Streamlit 화면에 표시
+                        st.image(img, caption=f"게시글 ID: {row['id']}", use_container_width=True)
+                        
+                    except Exception as e:
+                        st.error(f"이미지를 불러오는 중 오류가 발생했습니다: {e}")
+                else:
+                    st.info("등록된 이미지가 없습니다.")
+                
+                st.divider() # 구분선
+                ###################################################################
 
                 #if row['file_data']:
                 #    st.image(row['file_data'])

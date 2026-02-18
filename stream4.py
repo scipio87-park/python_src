@@ -14,7 +14,7 @@ def init_db():
             # Wrap everything in a transaction block
             with s.begin():
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
-                s.execute(text('DROP TABLE posts')                
+                s.execute(text('DROP TABLE posts'))                
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
                                   content TEXT, file_name TEXT, file_data BYTEA, 
@@ -152,6 +152,7 @@ else:
     
     
       
+
 
 
 

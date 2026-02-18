@@ -14,9 +14,6 @@ def init_db():
             # Wrap everything in a transaction block
             with s.begin():
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
-                #s.execute(text('DROP TABLE likes_log'))    
-                #s.execute(text('DROP TABLE comments'))                    
-                #s.execute(text('DROP TABLE posts'))                
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
                                   content TEXT, file_name TEXT, file_data BYTEA, 
@@ -24,7 +21,7 @@ def init_db():
                 s.execute(text('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, post_id INTEGER, author TEXT, comment TEXT, date TEXT)'))
                 s.execute(text('CREATE TABLE IF NOT EXISTS likes_log (post_id INTEGER, username TEXT, PRIMARY KEY(post_id, username))'))
             # s.commit() is handled automatically by with s.begin()
-            s.commit()        
+            s.commit()            
         except Exception as e:
             st.error(f"Database initialization failed: {e}")
 
@@ -74,8 +71,7 @@ with st.sidebar:
 st.title("☁️ Cloud Smart Board")
 
 if st.session_state['logged_in']:
-    #menu = ["목록", "글쓰기"]
-    menu = ["글쓰기", "목록"]    
+    menu = ["목록", "글쓰기"]
     choice = st.sidebar.selectbox("메뉴", menu)
 
     # A. 수정 모드
@@ -100,7 +96,9 @@ if st.session_state['logged_in']:
         cont = st.text_area("내용")
         f = st.file_uploader("이미지 첨부", type=['png', 'jpg', 'jpeg'])
         
-        if f: st.image(f, width=300)
+        #if f: st.image(f, width=300)
+        if f: st.image(f, width=30000)   # 2026.02.18 수정     
+        
 
         if st.button("등록"):
             fdata = f.getvalue() if f else None
@@ -113,15 +111,16 @@ if st.session_state['logged_in']:
 
     # C. 목록 모드
     elif choice == "목록":
-        posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=60)  
+        #posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
+        posts = conn.query("SELECT title, author, content FROM posts ORDER BY id DESC", ttl=0)          
         
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
 
         for _, row in posts.iterrows():
             with st.expander(f"📌 {row['title']} - {row['author']}"):
-                if row['file_data']:
-                    st.image(row['file_data'])
+                #if row['file_data']:
+                #    st.image(row['file_data'])
                 st.write(row['content'])
                 
                 # 좋아요 기능
@@ -152,31 +151,3 @@ if st.session_state['logged_in']:
                         st.rerun()
 else:
     st.info("사이드바를 이용해 로그인해 주세요.")
-    
-    
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

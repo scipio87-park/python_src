@@ -16,9 +16,9 @@ def init_db():
         try:
             # Wrap everything in a transaction block
             with s.begin():
-                ＃s.execute(text('DROP TABLE likes_log'))    
-                ＃s.execute(text('DROP TABLE comments'))                    
-                ＃s.execute(text('DROP TABLE posts'))                
+                #s.execute(text('DROP TABLE likes_log'))    
+                #s.execute(text('DROP TABLE comments'))                    
+                #s.execute(text('DROP TABLE posts'))                
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
@@ -191,4 +191,3 @@ if st.session_state['logged_in']:
                         st.rerun()
 else:
     st.info("사이드바를 이용해 로그인해 주세요.")
-

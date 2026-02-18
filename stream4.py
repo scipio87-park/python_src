@@ -13,6 +13,7 @@ def init_db():
         try:
             # Wrap everything in a transaction block
             with s.begin():
+                s.execute(text('DROP TABLE likes_log'))                
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
@@ -124,7 +125,8 @@ if st.session_state['logged_in']:
                 st.write(row['content'])
                 
                 # 좋아요 기능
-                like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
+                #like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
+                like_res = conn.query(f"SELECT '1' FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)                
                 is_liked = not like_res.empty
                 
                 if st.button(f"{'❤️' if is_liked else '🤍'} {row['likes']}", key=f"lk_{row['id']}"):

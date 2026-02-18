@@ -16,6 +16,8 @@ def init_db():
         try:
             # Wrap everything in a transaction block
             with s.begin():
+                s.execute(text('DROP TABLE likes_log'))    
+                s.execute(text('DROP TABLE comments'))                    
                 s.execute(text('DROP TABLE posts'))                
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 

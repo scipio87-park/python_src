@@ -74,8 +74,8 @@ with st.sidebar:
 st.title("☁️ Cloud Smart Board")
 
 if st.session_state['logged_in']:
-    menu = ["목록", "글쓰기"]
-    #menu = ["글쓰기", "목록"]    
+    #menu = ["목록", "글쓰기"]
+    menu = ["글쓰기", "목록"]    
     choice = st.sidebar.selectbox("메뉴", menu)
 
     # A. 수정 모드
@@ -155,6 +155,7 @@ else:
     
     
       
+
 
 
 

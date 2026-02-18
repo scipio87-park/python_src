@@ -14,9 +14,9 @@ def init_db():
             # Wrap everything in a transaction block
             with s.begin():
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
-                #s.execute(text('DROP TABLE likes_log'))    
-                #s.execute(text('DROP TABLE comments'))                    
-                #s.execute(text('DROP TABLE posts'))                
+                s.execute(text('DROP TABLE likes_log'))    
+                s.execute(text('DROP TABLE comments'))                    
+                s.execute(text('DROP TABLE posts'))                
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
                                   content TEXT, file_name TEXT, file_data BYTEA, 
@@ -24,6 +24,7 @@ def init_db():
                 s.execute(text('CREATE TABLE IF NOT EXISTS comments (id SERIAL PRIMARY KEY, post_id INTEGER, author TEXT, comment TEXT, date TEXT)'))
                 s.execute(text('CREATE TABLE IF NOT EXISTS likes_log (post_id INTEGER, username TEXT, PRIMARY KEY(post_id, username))'))
             # s.commit() is handled automatically by with s.begin()
+            s.commit()        
         except Exception as e:
             st.error(f"Database initialization failed: {e}")
 
@@ -73,7 +74,8 @@ with st.sidebar:
 st.title("☁️ Cloud Smart Board")
 
 if st.session_state['logged_in']:
-    menu = ["목록", "글쓰기"]
+    #menu = ["목록", "글쓰기"]
+    menu = ["글쓰기", "목록"]    
     choice = st.sidebar.selectbox("메뉴", menu)
 
     # A. 수정 모드
@@ -153,6 +155,7 @@ else:
     
     
       
+
 
 
 

@@ -100,7 +100,7 @@ if st.session_state['logged_in']:
         cont = st.text_area("내용")
         f = st.file_uploader("이미지 첨부", type=['png', 'jpg', 'jpeg'])
         
-        if f: st.image(f, width=30000)
+        if f: st.image(f, width=300)
 
         if st.button("등록"):
             fdata = f.getvalue() if f else None
@@ -113,7 +113,7 @@ if st.session_state['logged_in']:
 
     # C. 목록 모드
     elif choice == "목록":
-        posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
+        posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=60)  
         
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
@@ -155,6 +155,7 @@ else:
     
     
       
+
 
 
 

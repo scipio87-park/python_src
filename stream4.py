@@ -4,6 +4,9 @@ import hashlib
 from datetime import datetime
 from sqlalchemy import text
 
+import io
+from PIL import Image
+
 # --- 1. DB 연결 (Neon/Postgres) ---
 conn = st.connection("postgresql", type="sql")
 
@@ -113,15 +116,40 @@ if st.session_state['logged_in']:
     # C. 목록 모드
     elif choice == "목록":
         #posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
-        posts = conn.query("SELECT id, title, author, content, file_name, CAST(file_data AS CHAR), likes FROM posts ORDER BY id DESC", ttl=0)          
+        posts = conn.query("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC", ttl=0)          
         
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
 
         for _, row in posts.iterrows():
             with st.expander(f"📌 {row['title']} - {row['author']}"):
-                if row['file_data']:
-                    st.image(row['file_data'])
+
+                ###################################################################
+                # 바이너리 데이터 가져오기
+                blob_data = row['file_data']
+                
+                if blob_data:                
+                    try:                
+                        # 바이너리(bytes) 데이터를 메모리 내 바이트 스트림으로 변환
+                        image_bytes = io.BytesIO(blob_data)
+                        
+                        # PIL 이미지 객체로 열기
+                        img = Image.open(image_bytes)
+                        
+                        # Streamlit 화면에 표시
+                        st.image(img, caption=f"게시글 ID: {row['id']}", use_container_width=True)
+                        
+                    except Exception as e:
+                        st.error(f"이미지를 불러오는 중 오류가 발생했습니다: {e}")
+                else:
+                    st.info("등록된 이미지가 없습니다.")
+                
+                st.divider() # 구분선
+                ####################################################################
+
+                #if row['file_data']:
+                #    st.image(row['file_data'])
+                    
                 st.write(row['content'])
                 
                 # 좋아요 기능
@@ -152,9 +180,3 @@ if st.session_state['logged_in']:
                         st.rerun()
 else:
     st.info("사이드바를 이용해 로그인해 주세요.")
-
-
-
-
-
-

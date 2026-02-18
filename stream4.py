@@ -120,8 +120,8 @@ if st.session_state['logged_in']:
 
         for _, row in posts.iterrows():
             with st.expander(f"📌 {row['title']} - {row['author']}"):
-                #if row['file_data']:
-                #    st.image(row['file_data'])
+                if row['file_data']:
+                    st.image(row['file_data'])
                 st.write(row['content'])
                 
                 # 좋아요 기능
@@ -152,6 +152,7 @@ if st.session_state['logged_in']:
                         st.rerun()
 else:
     st.info("사이드바를 이용해 로그인해 주세요.")
+
 
 
 

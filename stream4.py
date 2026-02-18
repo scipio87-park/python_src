@@ -14,6 +14,7 @@ def init_db():
             # Wrap everything in a transaction block
             with s.begin():
                 s.execute(text('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT)'))
+                s.execute(text('DROP TABLE posts')                
                 s.execute(text('''CREATE TABLE IF NOT EXISTS posts 
                                  (id SERIAL PRIMARY KEY, author TEXT, title TEXT, 
                                   content TEXT, file_name TEXT, file_data BYTEA, 
@@ -109,7 +110,7 @@ if st.session_state['logged_in']:
 
     # C. 목록 모드
     elif choice == "목록":
-        posts = conn.query("SELECT * FROM posts ORDER BY id DESC") #, ttl=0)  
+        posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
         
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
@@ -151,6 +152,7 @@ else:
     
     
       
+
 
 
 

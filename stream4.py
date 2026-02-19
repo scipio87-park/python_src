@@ -121,37 +121,43 @@ if st.session_state['logged_in']:
 
     # C. 목록 모드
     elif choice == "목록":
-        #posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
-        #posts = conn.query("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC", ttl=0)          
-
         with conn.session as s:
+            # 1. 쿼리 실행
             result = s.execute(text("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC"))
-            posts = result.fetchall() # 리스트 형태로 가져오기
+            raw_posts = result.fetchall() 
+            
+            # 2. 리스트를 데이터프레임으로 변환 (검색 및 iterrows 사용을 위함)
+            # fetchall() 결과인 리스트를 데이터프레임으로 만들면 다시 편하게 다룰 수 있습니다.
+            posts = pd.DataFrame(raw_posts, columns=['id', 'title', 'author', 'content', 'file_name', 'file_data', 'likes'])
 
-            #posts = pd.DataFrame(posts, columns=['id', 'title', 'author', 'content', 'file_name', 'file_data', 'likes'])
-
-
-
-        
+        # 검색 필터 적용
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
 
+        # 3. 게시글 출력
         for _, row in posts.iterrows():
-            #with st.expander(f"📌 {row['title']} - {row['author']}"):
-
-
-            if row['file_data']:
-                #st.image(row['file_data'])
-                image_bytes = row['file_data']                    
-                image = Image.open(io.BytesIO(image_bytes))
-                st.image(image , caption=f"게시글 ID: {row['id']}", use_container_width=True)
-
+            with st.container(border=True): # 가독성을 위해 테두리 추가
+                st.subheader(f"📌 {row['title']}")
+                st.caption(f"작성자: {row['author']} | 좋아요: {row['likes']}")
+                
+                # 이미지 출력 로직
+                if row['file_data']:
+                    try:
+                        # row['file_data']가 이미 bytes 형태이므로 바로 변환 가능
+                        image_bytes = row['file_data']
+                        image = Image.open(io.BytesIO(image_bytes))
+                        st.image(image, caption=row['file_name'], use_container_width=True)
+                    except Exception as e:
+                        st.error(f"이미지 로딩 실패: {e}")
+                
+                st.write(row['content'])
+                st.divider()
 
 
 
 
                 
-            st.write(row['content'])
+        st.write(row['content'])
                 
 
 else:

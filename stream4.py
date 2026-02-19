@@ -122,87 +122,37 @@ if st.session_state['logged_in']:
     # C. 목록 모드
     elif choice == "목록":
         #posts = conn.query("SELECT * FROM posts ORDER BY id DESC", ttl=0)  
-        posts = conn.query("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC", ttl=0)          
+        #posts = conn.query("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC", ttl=0)          
+
+        with conn.session as s:
+            result = s.execute("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC")
+            posts = result.fetchall() # 리스트 형태로 가져오기
+
+            posts = pd.DataFrame(posts, columns=['id', 'title', 'author', 'content', 'file_name', 'file_data', 'likes'])
+
+
+
         
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
 
         for _, row in posts.iterrows():
-            with st.expander(f"📌 {row['title']} - {row['author']}"):
-
-                if row['file_data']:
-                    #st.image(row['file_data'])
-                    image_bytes = row['file_data']                    
-                    image = Image.open(io.BytesIO(image_bytes))
-                    st.image(image , caption=f"게시글 ID: {row['id']}", use_container_width=True)
+            #with st.expander(f"📌 {row['title']} - {row['author']}"):
 
 
+            if row['file_data']:
+                #st.image(row['file_data'])
+                image_bytes = row['file_data']                    
+                image = Image.open(io.BytesIO(image_bytes))
+                st.image(image , caption=f"게시글 ID: {row['id']}", use_container_width=True)
 
 
-                ###################################################################
-                # 바이너리 데이터 가져오기
-                #image_data = row['file_data']
+
+
+
                 
-                #if image_data:
-                #    # BytesIO를 통해 메모리 내에서 이미지 파일을 생성
-                #    img = Image.open(io.BytesIO(image_data))
-                #    st.image(img, width=300)
-                #else:
-                #    st.write("이미지가 없습니다.")
-                ################################################################### 
- 
+            st.write(row['content'])
                 
-                #blob_data = row['file_data']
-                #
-                #if blob_data:                
-                #    try:                
-                #        # 바이너리(bytes) 데이터를 메모리 내 바이트 스트림으로 변환
-                #        image_bytes = io.BytesIO(blob_data)
-                #        
-                #        # PIL 이미지 객체로 열기
-                #        img = Image.open(image_bytes)
-                #        
-                #        # Streamlit 화면에 표시
-                #        st.image(img, caption=f"게시글 ID: {row['id']}", use_container_width=True)
-                #        
-                #    except Exception as e:
-                #        st.error(f"이미지를 불러오는 중 오류가 발생했습니다: {e}")
-                #else:
-                #    st.info("등록된 이미지가 없습니다.")
-                #
-                #st.divider() # 구분선
-                ###################################################################
 
-                #if row['file_data']:
-                #    st.image(row['file_data'])
-                    
-                st.write(row['content'])
-                
-                # 좋아요 기능
-                like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
-                is_liked = not like_res.empty
-                
-                if st.button(f"{'❤️' if is_liked else '🤍'} {row['likes']}", key=f"lk_{row['id']}"):
-                    with conn.session as s:
-                        if is_liked:
-                            s.execute(text(f"DELETE FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'"))
-                            s.execute(text(f"UPDATE posts SET likes = likes - 1 WHERE id={row['id']}"))
-                        else:
-                            s.execute(text(f"INSERT INTO likes_log VALUES ({row['id']}, '{st.session_state['username']}')"))
-                            s.execute(text(f"UPDATE posts SET likes = likes + 1 WHERE id={row['id']}"))
-                        s.commit()
-                    st.rerun()
-
-                # 본인 글 수정/삭제
-                if st.session_state['username'] == row['author']:
-                    c1, c2 = st.columns(10)[:2] # 작게 배치
-                    if c1.button("✏️", key=f"ed_{row['id']}"):
-                        st.session_state.update({'edit_mode': True, 'edit_post_id': row['id']})
-                        st.rerun()
-                    if c2.button("🗑️", key=f"del_{row['id']}"):
-                        with conn.session as s:
-                            s.execute(text(f"DELETE FROM posts WHERE id={row['id']}"))
-                            s.commit()
-                        st.rerun()
 else:
     st.info("사이드바를 이용해 로그인해 주세요.")

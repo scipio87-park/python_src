@@ -149,9 +149,36 @@ if st.session_state['logged_in']:
                 st.divider()
     
 
-
+                st.write(row['content'])
                 
-            st.write(row['content'])
+                # 좋아요 기능
+                like_res = conn.query(f"SELECT * FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'", ttl=0)
+                is_liked = not like_res.empty
+                
+                if st.button(f"{'❤️' if is_liked else '🤍'} {row['likes']}", key=f"lk_{row['id']}"):
+                    with conn.session as s:
+                        if is_liked:
+                            s.execute(text(f"DELETE FROM likes_log WHERE post_id={row['id']} AND username='{st.session_state['username']}'"))
+                            s.execute(text(f"UPDATE posts SET likes = likes - 1 WHERE id={row['id']}"))
+                        else:
+                            s.execute(text(f"INSERT INTO likes_log VALUES ({row['id']}, '{st.session_state['username']}')"))
+                            s.execute(text(f"UPDATE posts SET likes = likes + 1 WHERE id={row['id']}"))
+                        s.commit()
+                    st.rerun()
+
+                # 본인 글 수정/삭제
+                if st.session_state['username'] == row['author']:
+                    c1, c2 = st.columns(10)[:2] # 작게 배치
+                    if c1.button("✏️", key=f"ed_{row['id']}"):
+                        st.session_state.update({'edit_mode': True, 'edit_post_id': row['id']})
+                        st.rerun()
+                    if c2.button("🗑️", key=f"del_{row['id']}"):
+                        with conn.session as s:
+                            s.execute(text(f"DELETE FROM posts WHERE id={row['id']}"))
+                            s.commit()
+                        st.rerun()
+                
+
                 
 
 else:

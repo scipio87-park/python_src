@@ -125,10 +125,10 @@ if st.session_state['logged_in']:
         #posts = conn.query("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC", ttl=0)          
 
         with conn.session as s:
-            result = s.execute("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC")
+            result = s.execute(text("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC"))
             posts = result.fetchall() # 리스트 형태로 가져오기
 
-            posts = pd.DataFrame(posts, columns=['id', 'title', 'author', 'content', 'file_name', 'file_data', 'likes'])
+            #posts = pd.DataFrame(posts, columns=['id', 'title', 'author', 'content', 'file_name', 'file_data', 'likes'])
 
 
 

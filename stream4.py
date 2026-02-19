@@ -7,6 +7,11 @@ from sqlalchemy import text
 import io
 from PIL import Image
 
+import psycopg2
+
+
+
+
 # --- 1. DB 연결 (Neon/Postgres) ---
 conn = st.connection("postgresql", type="sql")
 
@@ -125,9 +130,18 @@ if st.session_state['logged_in']:
         for _, row in posts.iterrows():
             with st.expander(f"📌 {row['title']} - {row['author']}"):
 
+                if row['file_data']:
+                    #st.image(row['file_data'])
+                    image_bytes = row['file_data']                    
+                    image = Image.open(io.BytesIO(image_bytes))
+                    st.image(image , caption=f"게시글 ID: {row['id']}", use_container_width=True)
+
+
+
+
                 ###################################################################
                 # 바이너리 데이터 가져오기
-                image_data = row['file_data']
+                #image_data = row['file_data']
                 
                 #if image_data:
                 #    # BytesIO를 통해 메모리 내에서 이미지 파일을 생성
@@ -135,27 +149,28 @@ if st.session_state['logged_in']:
                 #    st.image(img, width=300)
                 #else:
                 #    st.write("이미지가 없습니다.")
+                ################################################################### 
+ 
                 
-                
-                blob_data = row['file_data']
-                
-                if blob_data:                
-                    try:                
-                        # 바이너리(bytes) 데이터를 메모리 내 바이트 스트림으로 변환
-                        image_bytes = io.BytesIO(blob_data)
-                        
-                        # PIL 이미지 객체로 열기
-                        img = Image.open(image_bytes)
-                        
-                        # Streamlit 화면에 표시
-                        st.image(img, caption=f"게시글 ID: {row['id']}", use_container_width=True)
-                        
-                    except Exception as e:
-                        st.error(f"이미지를 불러오는 중 오류가 발생했습니다: {e}")
-                else:
-                    st.info("등록된 이미지가 없습니다.")
-                
-                st.divider() # 구분선
+                #blob_data = row['file_data']
+                #
+                #if blob_data:                
+                #    try:                
+                #        # 바이너리(bytes) 데이터를 메모리 내 바이트 스트림으로 변환
+                #        image_bytes = io.BytesIO(blob_data)
+                #        
+                #        # PIL 이미지 객체로 열기
+                #        img = Image.open(image_bytes)
+                #        
+                #        # Streamlit 화면에 표시
+                #        st.image(img, caption=f"게시글 ID: {row['id']}", use_container_width=True)
+                #        
+                #    except Exception as e:
+                #        st.error(f"이미지를 불러오는 중 오류가 발생했습니다: {e}")
+                #else:
+                #    st.info("등록된 이미지가 없습니다.")
+                #
+                #st.divider() # 구분선
                 ###################################################################
 
                 #if row['file_data']:

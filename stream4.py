@@ -120,30 +120,24 @@ if st.session_state['logged_in']:
             st.rerun()
 
     # C. 목록 모드
+    # C. 목록 모드 수정본 (버전 호환성 고려)
     elif choice == "목록":
         with conn.session as s:
-            # 1. 쿼리 실행
             result = s.execute(text("SELECT id, title, author, content, file_name, file_data, likes FROM posts ORDER BY id DESC"))
             raw_posts = result.fetchall() 
-            
-            # 2. 리스트를 데이터프레임으로 변환 (검색 및 iterrows 사용을 위함)
-            # fetchall() 결과인 리스트를 데이터프레임으로 만들면 다시 편하게 다룰 수 있습니다.
             posts = pd.DataFrame(raw_posts, columns=['id', 'title', 'author', 'content', 'file_name', 'file_data', 'likes'])
-
-        # 검색 필터 적용
+    
         if search_query:
             posts = posts[posts['title'].str.contains(search_query, case=False, na=False)]
-
-        # 3. 게시글 출력
+    
         for _, row in posts.iterrows():
-            with st.container(border=True): # 가독성을 위해 테두리 추가
-                st.subheader(f"📌 {row['title']}")
-                st.caption(f"작성자: {row['author']} | 좋아요: {row['likes']}")
+            # border 옵션 대신 expander를 사용하여 깔끔하게 정리하거나, 
+            # 단순히 container만 사용합니다 (구버전은 border 매개변수 없음)
+            with st.expander(f"📌 {row['title']} - {row['author']}", expanded=True):
+                st.caption(f"좋아요: {row['likes']}")
                 
-                # 이미지 출력 로직
                 if row['file_data']:
                     try:
-                        # row['file_data']가 이미 bytes 형태이므로 바로 변환 가능
                         image_bytes = row['file_data']
                         image = Image.open(io.BytesIO(image_bytes))
                         st.image(image, caption=row['file_name'], use_container_width=True)
@@ -151,9 +145,9 @@ if st.session_state['logged_in']:
                         st.error(f"이미지 로딩 실패: {e}")
                 
                 st.write(row['content'])
+                # 구분선 추가
                 st.divider()
-
-
+    
 
 
                 

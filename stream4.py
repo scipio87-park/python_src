@@ -151,7 +151,7 @@ if st.session_state['logged_in']:
 
 
                 
-        st.write(row['content'])
+            st.write(row['content'])
                 
 
 else:
